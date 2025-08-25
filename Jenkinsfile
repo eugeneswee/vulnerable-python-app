@@ -205,6 +205,37 @@ EOF
                 }
             }
         }
+        
+        stage('Snyk Monitor - Push to Dashboard') {
+            steps {
+                sh '''
+                    echo "Pushing results to Snyk dashboard for continuous monitoring..."
+                    
+                    # Monitor Python dependencies (even if scan failed earlier)
+                    echo "Monitoring dependencies..."
+                    cd ${WORKSPACE}
+                    snyk monitor --file=./requirements.txt \
+                        --project-name="vulnerable-python-app-deps-build-${BUILD_NUMBER}" \
+                        --remote-repo-url="https://github.com/eugeneswee/vulnerable-python-app" || true
+                    
+                    # Monitor container image
+                    echo "Monitoring container image..."
+                    snyk container monitor ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                        --project-name="vulnerable-python-app-container-build-${BUILD_NUMBER}" || true
+                    
+                    # Monitor code (if Snyk Code is enabled)
+                    echo "Monitoring code..."
+                    snyk code test --report \
+                        --project-name="vulnerable-python-app-code-build-${BUILD_NUMBER}" || true
+                    
+                    echo ""
+                    echo "============================================"
+                    echo "Projects should now appear in Snyk dashboard:"
+                    echo "https://app.snyk.io/org/eugeneswee21/projects"
+                    echo "============================================"
+                '''
+            }
+        }
     }
     
     post {
