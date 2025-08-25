@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        SNYK_TOKEN = credentials('snyk-token')
+        SNYK_TOKEN = credentials('snyk-api-token')
         DOCKER_IMAGE = 'vulnerable-python-app'
         DOCKER_TAG = "${BUILD_NUMBER}"
     }
