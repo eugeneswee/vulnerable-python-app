@@ -60,17 +60,30 @@ pipeline {
                         # Create reports directory
                         mkdir -p reports
                         
-                        # Run Snyk test and capture results
-                        snyk test --file=requirements.txt --json > reports/snyk-deps-report.json || true
+                        # Test Python dependencies with proper context
+                        cd ${WORKSPACE}
                         
-                        # Display summary
+                        # First, let's test if Snyk can access the file
+                        if [ -f requirements.txt ]; then
+                            echo "requirements.txt found"
+                            cat requirements.txt
+                        fi
+                        
+                        # Run Snyk test with explicit path and Python flag
+                        snyk test --file=./requirements.txt --package-manager=pip --json > reports/snyk-deps-report.json || true
+                        
+                        # Display summary (this may fail but that's ok)
                         echo "=== Dependency Scan Results ==="
-                        snyk test --file=requirements.txt || true
+                        if [ -s reports/snyk-deps-report.json ]; then
+                            snyk test --file=./requirements.txt --package-manager=pip || true
+                        else
+                            echo "No dependency scan results available"
+                        fi
                     '''
                     
                     // Check if critical vulnerabilities exist
                     def hasVulnerabilities = sh(
-                        script: 'grep -q "\\"severity\\":\\"critical\\"" reports/snyk-deps-report.json',
+                        script: 'test -s reports/snyk-deps-report.json && grep -q "\\"severity\\":\\"critical\\"" reports/snyk-deps-report.json',
                         returnStatus: true
                     )
                     
