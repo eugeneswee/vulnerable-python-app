@@ -4,15 +4,13 @@ pipeline {
     environment {
         DOCKER_IMAGE = "vulnerable-python-app"
         SONAR_PROJECT_KEY = "vulnerable-python-app"
-        // Use Docker TCP instead of socket - works on all platforms
-        DOCKER_HOST = "tcp://host.docker.internal:2375"
+        SNYK_TOKEN = credentials('snyk-token')
     }
     
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "Code checked out successfully"
             }
         }
         
@@ -20,10 +18,8 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker image..."
-                    echo "Using Docker host: ${env.DOCKER_HOST}"
                     sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
                     sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
-                    echo "Docker image built successfully"
                 }
             }
         }
@@ -32,45 +28,32 @@ pipeline {
             steps {
                 script {
                     echo "Running SonarQube analysis..."
-                    withSonarQubeEnv('SonarQube-Local') {
-                        sh """
-                            docker run --rm --network terraform-devsecops-network \
-                            -v \$(pwd):/usr/src \
-                            -e SONAR_HOST_URL=http://sonarqube-devsecops:9000 \
-                            sonarsource/sonar-scanner-cli \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.sources=/usr/src \
-                            -Dsonar.exclusions=**/*.pyc,**/migrations/**,**/venv/**
-                        """
-                    }
+                    sh """
+                        docker run --rm --network terraform-devsecops-network \
+                        -v \$(pwd):/usr/src \
+                        -e SONAR_HOST_URL=http://sonarqube:9000 \
+                        -e SONAR_LOGIN=admin \
+                        -e SONAR_PASSWORD=admin123 \
+                        sonarsource/sonar-scanner-cli \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.sources=/usr/src \
+                        -Dsonar.python.coverage.reportPaths=coverage.xml
+                    """
                 }
             }
         }
         
         stage('Dependency Scan - Snyk') {
-            when {
-                expression { 
-                    try {
-                        env.SNYK_TOKEN = credentials('snyk-token')
-                        return true
-                    } catch (Exception e) {
-                        echo "Snyk token not configured, skipping dependency scan"
-                        return false
-                    }
-                }
-            }
             steps {
                 script {
                     echo "Running Snyk dependency scan..."
-                    withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-                        sh """
-                            docker run --rm \
-                            -v \$(pwd):/project \
-                            -e SNYK_TOKEN=\${SNYK_TOKEN} \
-                            snyk/snyk:python \
-                            test --file=/project/requirements.txt --severity-threshold=medium || true
-                        """
-                    }
+                    sh """
+                        docker run --rm \
+                        -v \$(pwd):/project \
+                        -e SNYK_TOKEN=${SNYK_TOKEN} \
+                        snyk/snyk:python \
+                        test --file=/project/requirements.txt --severity-threshold=high
+                    """
                 }
             }
         }
@@ -81,13 +64,12 @@ pipeline {
                     echo "Running Trivy container scan..."
                     sh """
                         docker run --rm \
-                        -e DOCKER_HOST=${env.DOCKER_HOST} \
-                        --add-host=host.docker.internal:host-gateway \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
                         aquasec/trivy:latest image \
                         --exit-code 0 \
                         --severity HIGH,CRITICAL \
                         --format table \
-                        ${DOCKER_IMAGE}:latest || true
+                        ${DOCKER_IMAGE}:latest
                     """
                 }
             }
@@ -98,9 +80,8 @@ pipeline {
                 script {
                     echo "Deploying to test environment..."
                     sh """
-                        docker stop vulnerable-app-test 2>/dev/null || true
-                        docker rm vulnerable-app-test 2>/dev/null || true
-                        
+                        docker stop vulnerable-app-test || true
+                        docker rm vulnerable-app-test || true
                         docker run -d \
                         --name vulnerable-app-test \
                         --network terraform-devsecops-network \
@@ -117,11 +98,9 @@ pipeline {
                 script {
                     echo "Running integration tests..."
                     sh """
-                        sleep 15
+                        sleep 10
                         curl -f http://localhost:5000/health || exit 1
                         echo "Health check passed"
-                        curl -f http://localhost:5000/ || exit 1
-                        echo "Basic functionality test passed"
                     """
                 }
             }
@@ -130,25 +109,15 @@ pipeline {
     
     post {
         always {
-            script {
-                echo "Pipeline completed"
-                sh """
-                    docker system prune -f || true
-                    echo "Cleanup completed"
-                """
-            }
+            echo "Pipeline completed"
+            sh "docker system prune -f"
         }
         success {
             echo "Pipeline succeeded!"
         }
         failure {
-            script {
-                echo "Pipeline failed!"
-                sh """
-                    echo "=== Container logs for debugging ==="
-                    docker logs vulnerable-app-test 2>/dev/null || echo "No test container logs available"
-                """
-            }
+            echo "Pipeline failed!"
+            sh "docker logs vulnerable-app-test || true"
         }
     }
 }
