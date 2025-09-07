@@ -30,6 +30,13 @@ pipeline {
             steps {
                 script {
                     echo "Running SonarQube analysis..."
+                    echo "Current directory contents:"
+                    sh "ls -la"
+                    echo "Looking for Python files:"
+                    sh "find . -name '*.py' -type f"
+                    echo "Current working directory:"
+                    sh "pwd"
+                    
                     withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                         sh """
                             docker run --rm --network terraform-devsecops-network \
@@ -40,7 +47,10 @@ pipeline {
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.sources=/usr/src \
                             -Dsonar.inclusions=**/*.py \
-                            -Dsonar.exclusions=**/*.pyc,**/migrations/**,**/venv/**,**/node_modules/**
+                            -Dsonar.exclusions=**/*.pyc,**/migrations/**,**/venv/**,**/node_modules/** \
+                            -Dsonar.python.version=3.9 \
+                            -Dsonar.sourceEncoding=UTF-8 \
+                            -Dsonar.verbose=true
                         """
                     }
                 }
