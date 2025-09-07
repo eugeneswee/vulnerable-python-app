@@ -121,17 +121,19 @@ pipeline {
                         echo "Checking container logs..."
                         docker logs vulnerable-app-test
                         
-                        echo "Testing internal connectivity..."
-                        docker exec jenkins-devsecops curl -f http://vulnerable-app-test:5000/health || echo "Internal connection failed"
+                        echo "Testing internal container connectivity..."
+                        docker exec jenkins-devsecops curl -f http://vulnerable-app-test:5000/health || exit 1
+                        echo "Internal health check passed"
                         
-                        echo "Waiting for application to start..."
-                        sleep 15
+                        echo "Testing external host connectivity..."
+                        docker exec jenkins-devsecops curl -f http://host.docker.internal:5001/health || exit 1
+                        echo "External health check passed"
                         
-                        echo "Testing external connectivity..."
-                        curl -f http://localhost:5001/health || exit 1
-                        echo "Health check passed"
-                        curl -f http://localhost:5001/ || exit 1
+                        echo "Testing basic functionality..."
+                        docker exec jenkins-devsecops curl -f http://vulnerable-app-test:5000/ || exit 1
                         echo "Basic functionality test passed"
+                        
+                        echo "SUCCESS: Application is accessible at http://localhost:5001"
                     """
                 }
             }
