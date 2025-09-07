@@ -24,25 +24,22 @@ pipeline {
             }
         }
         
-        stage('SAST - SonarQube') {
-            steps {
-                script {
-                    echo "Running SonarQube analysis..."
-                    sh """
-                        docker run --rm --network terraform-devsecops-network \
-                        -v \$(pwd):/usr/src \
-                        -e SONAR_HOST_URL=http://sonarqube:9000 \
-                        -e SONAR_LOGIN=admin \
-                        -e SONAR_PASSWORD=admin123 \
-                        sonarsource/sonar-scanner-cli \
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                        -Dsonar.sources=/usr/src \
-                        -Dsonar.python.coverage.reportPaths=coverage.xml
-                    """
-                }
-            }
+       stage('SAST - SonarQube') {
+    steps {
+        script {
+            echo "Running SonarQube analysis..."
+            sh """
+                docker run --rm --network terraform-devsecops-network \
+                -v \$(pwd):/usr/src \
+                -e SONAR_HOST_URL=http://sonarqube-devsecops:9000 \
+                sonarsource/sonar-scanner-cli \
+                -Dsonar.projectKey=vulnerable-python-app \
+                -Dsonar.sources=/usr/src \
+                -Dsonar.exclusions=**/*.pyc,**/migrations/**,**/venv/**
+            """
         }
-        
+    }
+} 
         stage('Dependency Scan - Snyk') {
             steps {
                 script {
