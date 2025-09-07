@@ -67,7 +67,7 @@ pipeline {
                             -v \$(pwd):/project \
                             -e SNYK_TOKEN=\${SNYK_TOKEN} \
                             snyk/snyk:python \
-                            test /project/requirements.txt --json || true
+                            test /project/requirements.txt || true
                         """
                     }
                 }
