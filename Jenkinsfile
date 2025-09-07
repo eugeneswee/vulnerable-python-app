@@ -45,9 +45,9 @@ pipeline {
                             -e SONAR_TOKEN=\${SONAR_TOKEN} \
                             sonarsource/sonar-scanner-cli \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.sources=/usr/src \
-                            -Dsonar.inclusions=**/*.py \
-                            -Dsonar.exclusions=**/*.pyc,**/migrations/**,**/venv/**,**/node_modules/** \
+                            -Dsonar.sources=. \
+                            -Dsonar.inclusions=*.py \
+                            -Dsonar.language=py \
                             -Dsonar.python.version=3.9 \
                             -Dsonar.sourceEncoding=UTF-8 \
                             -Dsonar.verbose=true
