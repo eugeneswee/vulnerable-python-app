@@ -37,6 +37,7 @@ pipeline {
                             docker run --rm --network terraform-devsecops-network \
                             -v \$(pwd):/usr/src \
                             -e SONAR_HOST_URL=http://sonarqube-devsecops:9000 \
+                            -e SONAR_TOKEN=\${SONAR_AUTH_TOKEN} \
                             sonarsource/sonar-scanner-cli \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.sources=/usr/src \
