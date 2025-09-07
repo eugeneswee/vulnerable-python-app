@@ -5,7 +5,7 @@ pipeline {
         DOCKER_IMAGE = "vulnerable-python-app"
         SONAR_PROJECT_KEY = "vulnerable-python-app"
         // Use Docker TCP connection for cross-platform compatibility
-        DOCKER_HOST = "tcp://host.docker.internal:2375"
+//        DOCKER_HOST = "tcp://host.docker.internal:2375"
     }
     
     stages {
