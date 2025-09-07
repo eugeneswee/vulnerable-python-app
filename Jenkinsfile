@@ -26,27 +26,27 @@ pipeline {
             }
         }
         
-       stage('SAST - SonarQube') {
-    steps {
-        script {
-            echo "Running SonarQube analysis..."
-            withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                sh """
-                    docker run --rm --network terraform-devsecops-network \
-                    -v \$(pwd):/usr/src \
-                    -e SONAR_HOST_URL=http://sonarqube-devsecops:9000 \
-                    -e SONAR_TOKEN=\${SONAR_TOKEN} \
-                    sonarsource/sonar-scanner-cli \
-                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                    -Dsonar.sources=/usr/src \
-                    -Dsonar.language=py \
-                    -Dsonar.python.file.suffixes=.py \
-                    -Dsonar.exclusions=**/*.pyc,**/migrations/**,**/venv/**,Dockerfile,requirements.txt
-                """
+        stage('SAST - SonarQube') {
+            steps {
+                script {
+                    echo "Running SonarQube analysis..."
+                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                            docker run --rm --network terraform-devsecops-network \
+                            -v \$(pwd):/usr/src \
+                            -e SONAR_HOST_URL=http://sonarqube-devsecops:9000 \
+                            -e SONAR_TOKEN=\${SONAR_TOKEN} \
+                            sonarsource/sonar-scanner-cli \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.sources=/usr/src \
+                            -Dsonar.inclusions=**/*.py \
+                            -Dsonar.exclusions=**/*.pyc,**/migrations/**,**/venv/**,**/node_modules/**
+                        """
+                    }
+                }
             }
         }
-    }
-} 
+        
         stage('Dependency Scan - Snyk') {
             when {
                 expression { 
