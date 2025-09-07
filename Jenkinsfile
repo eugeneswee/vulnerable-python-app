@@ -67,7 +67,7 @@ pipeline {
                             -v \$(pwd):/project \
                             -e SNYK_TOKEN=\${SNYK_TOKEN} \
                             snyk/snyk:python \
-                            test --file=/project/requirements.txt --severity-threshold=medium --json || true
+                            test /project/requirements.txt --severity-threshold=medium --json || true
                         """
                     }
                 }
@@ -115,7 +115,19 @@ pipeline {
                 script {
                     echo "Running integration tests..."
                     sh """
+                        echo "Checking container status..."
+                        docker ps | grep vulnerable-app-test || echo "Container not found"
+                        
+                        echo "Checking container logs..."
+                        docker logs vulnerable-app-test
+                        
+                        echo "Testing internal connectivity..."
+                        docker exec jenkins-devsecops curl -f http://vulnerable-app-test:5000/health || echo "Internal connection failed"
+                        
+                        echo "Waiting for application to start..."
                         sleep 15
+                        
+                        echo "Testing external connectivity..."
                         curl -f http://localhost:5001/health || exit 1
                         echo "Health check passed"
                         curl -f http://localhost:5001/ || exit 1
