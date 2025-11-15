@@ -26,8 +26,7 @@ pipeline {
                         mkdir -p ~/bin
                         mv /tmp/snyk ~/bin/
                         chmod +x ~/bin/snyk
-                        echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
-                        source ~/.bashrc
+                        export PATH="$HOME/bin:$PATH"'
                     fi
                     
                     # Authenticate with Snyk
