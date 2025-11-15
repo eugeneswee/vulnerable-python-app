@@ -2,6 +2,7 @@ pipeline {
     agent any
     
     environment {
+        SNYK_PATH = '~/bin/snyk'
         SNYK_TOKEN = credentials('snyk-token')
         DOCKER_IMAGE = 'vulnerable-python-app'
         DOCKER_TAG = "${BUILD_NUMBER}"
@@ -18,7 +19,6 @@ pipeline {
             steps {
                 sh '''
                     # Check if Snyk is installed
-                    SNYK_PATH=~/bin/snyk
                     if [ ! -x "$SNYK_PATH" ]; then
                         echo "Installing Snyk CLI..."
                         curl -Lo /tmp/snyk https://static.snyk.io/cli/latest/snyk-linux
@@ -31,7 +31,7 @@ pipeline {
                     fi
                     
                     # Authenticate with Snyk
-                    snyk auth ${SNYK_TOKEN}
+                    ${SNYK_PATH} auth ${SNYK_TOKEN}
                 '''
             }
         }
@@ -73,12 +73,12 @@ pipeline {
                         fi
                         
                         # Run Snyk test with explicit path and Python flag
-                        snyk test --file=./requirements.txt --package-manager=pip --json > reports/snyk-deps-report.json || true
+                        ${SNYK_PATH} test --file=./requirements.txt --package-manager=pip --json > reports/snyk-deps-report.json || true
                         
                         # Display summary (this may fail but that's ok)
                         echo "=== Dependency Scan Results ==="
                         if [ -s reports/snyk-deps-report.json ]; then
-                            snyk test --file=./requirements.txt --package-manager=pip || true
+                            ${SNYK_PATH} test --file=./requirements.txt --package-manager=pip || true
                         else
                             echo "No dependency scan results available"
                         fi
@@ -104,11 +104,11 @@ pipeline {
                     sh '''
                         echo "Scanning Docker image..."
                         # Scan container and save results
-                        snyk container test ${DOCKER_IMAGE}:${DOCKER_TAG} --json > reports/snyk-container-report.json || true
+                        ${SNYK_PATH} container test ${DOCKER_IMAGE}:${DOCKER_TAG} --json > reports/snyk-container-report.json || true
                         
                         # Display summary
                         echo "=== Container Scan Results ==="
-                        snyk container test ${DOCKER_IMAGE}:${DOCKER_TAG} || true
+                        ${SNYK_PATH} container test ${DOCKER_IMAGE}:${DOCKER_TAG} || true
                     '''
                     
                     // Mark build as unstable if vulnerabilities found
@@ -131,11 +131,11 @@ pipeline {
                     sh '''
                         echo "Running static code analysis..."
                         # Run code analysis
-                        snyk code test --json > reports/snyk-code-report.json || true
+                        ${SNYK_PATH} code test --json > reports/snyk-code-report.json || true
                         
                         # Display summary
                         echo "=== Code Analysis Results ==="
-                        snyk code test || true
+                        ${SNYK_PATH} code test || true
                     '''
                     
                     // Check for code issues
@@ -217,13 +217,13 @@ EOF
                     # Monitor Python dependencies (even if scan failed earlier)
                     echo "Monitoring dependencies..."
                     cd ${WORKSPACE}
-                    snyk monitor --file=./requirements.txt \
+                    ${SNYK_PATH} monitor --file=./requirements.txt \
                         --project-name="vulnerable-python-app-deps-build-${BUILD_NUMBER}" \
                         --remote-repo-url="https://github.com/eugeneswee/vulnerable-python-app" || true
                     
                     # Monitor container image
                     echo "Monitoring container image..."
-                    snyk container monitor ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                    ${SNYK_PATH} container monitor ${DOCKER_IMAGE}:${DOCKER_TAG} \
                         --project-name="vulnerable-python-app-container-build-${BUILD_NUMBER}" || true
                     
                     # Monitor code (if Snyk Code is enabled)
