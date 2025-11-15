@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        SNYK_PATH = '~/bin/snyk'
+        SNYK_PATH = '/var/jenkins_home/bin/snyk'
         SNYK_TOKEN = credentials('snyk-token')
         DOCKER_IMAGE = 'vulnerable-python-app'
         DOCKER_TAG = "${BUILD_NUMBER}"
@@ -23,9 +23,9 @@ pipeline {
                         echo "Installing Snyk CLI..."
                         curl -Lo /tmp/snyk https://static.snyk.io/cli/latest/snyk-linux
                         chmod +x /tmp/snyk
-                        mkdir -p ~/bin
-                        mv /tmp/snyk ~/bin/
-                        chmod +x ~/bin/snyk
+                        mkdir -p /var/jenkins_home/bin
+                        mv /tmp/snyk /var/jenkins_home/bin/
+                        chmod +x /var/jenkins_home/bin/snyk
                         export PATH="$HOME/bin:$PATH"
                     fi
                     
