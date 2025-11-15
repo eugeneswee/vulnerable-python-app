@@ -22,9 +22,9 @@ pipeline {
                         echo "Snyk CLI is already installed"
                     else
                         echo "Installing Snyk CLI..."
-                        curl -Lo ./snyk https://static.snyk.io/cli/latest/snyk-linux
-                        chmod +x ./snyk
-                        sudo mv ./snyk /usr/local/bin/
+                        curl -Lo /tmp/snyk https://static.snyk.io/cli/latest/snyk-linux
+                        chmod +x /tmp/snyk
+                        sudo mv /tmp/snyk /usr/local/bin/
                     fi
                     
                     # Authenticate with Snyk
