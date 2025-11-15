@@ -24,7 +24,11 @@ pipeline {
                         echo "Installing Snyk CLI..."
                         curl -Lo /tmp/snyk https://static.snyk.io/cli/latest/snyk-linux
                         chmod +x /tmp/snyk
-                        sudo mv /tmp/snyk /usr/local/bin/
+                        mkdir -p ~/bin
+                        mv /tmp/snyk ~/bin/
+                        chmod +x ~/bin/snyk
+                        echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+                        source ~/.bashrc
                     fi
                     
                     # Authenticate with Snyk
