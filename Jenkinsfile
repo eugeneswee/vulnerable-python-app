@@ -18,9 +18,8 @@ pipeline {
             steps {
                 sh '''
                     # Check if Snyk is installed
-                    if command -v snyk &> /dev/null; then
-                        echo "Snyk CLI is already installed"
-                    else
+                    SNYK_PATH=~/bin/snyk
+                    if [ ! -x "$SNYK_PATH" ]; then
                         echo "Installing Snyk CLI..."
                         curl -Lo /tmp/snyk https://static.snyk.io/cli/latest/snyk-linux
                         chmod +x /tmp/snyk
